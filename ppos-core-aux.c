@@ -63,14 +63,13 @@ void timer_handler () {
 
 void before_ppos_init () {
     timer_handler();
-    // put your customization here
 #ifdef DEBUG
     printf("\ninit - BEFORE");
 #endif
 }
 
 void after_ppos_init () {
-    // timer_handler();
+    // put your customization here
 #ifdef DEBUG
     printf("\ninit - AFTER");
 #endif
@@ -85,6 +84,8 @@ void before_task_create (task_t *task ) {
 
 void after_task_create (task_t *task ) {
     task->ticks = MAX_QUANTUM;
+    task->createdAt = systemTime;
+    task->activations = 0;
 #ifdef DEBUG
     printf("\ntask_create - AFTER - [%d]", task->id);
 #endif
@@ -98,7 +99,9 @@ void before_task_exit () {
 }
 
 void after_task_exit () {
-    // put your customization here
+    taskExec->execTime = systemTime - taskExec->createdAt;
+    printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n",
+    taskExec->id, taskExec->execTime, taskExec->processorTime, taskExec->activations);
 #ifdef DEBUG
     printf("\ntask_exit - AFTER- [%d]", taskExec->id);
 #endif
@@ -106,6 +109,11 @@ void after_task_exit () {
 
 void before_task_switch ( task_t *task ) {
     // put your customization here
+    // printf("\ntask_switch - BEFORE - [%d -> %d]", taskExec->id, task->id);
+    taskExec->processorTime += systemTime - task->currentProcessorTime;
+
+    task->currentProcessorTime = systemTime;
+    task->activations++;
 #ifdef DEBUG
     printf("\ntask_switch - BEFORE - [%d -> %d]", taskExec->id, task->id);
 #endif
@@ -140,7 +148,8 @@ void before_task_suspend( task_t *task ) {
 }
 
 void after_task_suspend( task_t *task ) {
-    // put your customization here
+    // task->processorTime += systemTime - task->currentProcessorTime;
+    // printf("\ntask_suspend - AFTER - [%d]", task->id);
 #ifdef DEBUG
     printf("\ntask_suspend - AFTER - [%d]", task->id);
 #endif
@@ -154,7 +163,9 @@ void before_task_resume(task_t *task) {
 }
 
 void after_task_resume(task_t *task) {
-    // put your customization here
+    task->currentProcessorTime = systemTime;
+    task->activations++;
+    // printf("\ntask_resume - AFTER - [%d]", task->id);
 #ifdef DEBUG
     printf("\ntask_resume - AFTER - [%d]", task->id);
 #endif

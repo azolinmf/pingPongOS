@@ -13,7 +13,10 @@
 				// "${workspaceFolder}/pingpong.c",
 				// "${workspaceFolder}/queue.c",
 				// "${workspaceFolder}/pingpong-tasks3.c",
-				"${workspaceFolder}/signal.c",
+				"${workspaceFolder}/ppos.c",
+				"${workspaceFolder}/pingpong-contab-prio.c",
+				"${workspaceFolder}/ppos-core-aux.c",
+				"${workspaceFolder}/libppos_static.a",
 				"-o",
 				"${workspaceFolder}/pingpong.exe"
 			],
