@@ -11,7 +11,6 @@
 // estruturas e funções
 
 #define MAX_QUANTUM 20
-// #define DEBUG
 
 // estrutura que define um tratador de sinal (deve ser global ou static)
 struct sigaction action ;
@@ -108,8 +107,6 @@ void after_task_exit () {
 }
 
 void before_task_switch ( task_t *task ) {
-    // put your customization here
-    // printf("\ntask_switch - BEFORE - [%d -> %d]", taskExec->id, task->id);
     taskExec->processorTime += systemTime - task->currentProcessorTime;
 
     task->currentProcessorTime = systemTime;
@@ -148,8 +145,7 @@ void before_task_suspend( task_t *task ) {
 }
 
 void after_task_suspend( task_t *task ) {
-    // task->processorTime += systemTime - task->currentProcessorTime;
-    // printf("\ntask_suspend - AFTER - [%d]", task->id);
+    // put your customization here
 #ifdef DEBUG
     printf("\ntask_suspend - AFTER - [%d]", task->id);
 #endif
@@ -165,7 +161,6 @@ void before_task_resume(task_t *task) {
 void after_task_resume(task_t *task) {
     task->currentProcessorTime = systemTime;
     task->activations++;
-    // printf("\ntask_resume - AFTER - [%d]", task->id);
 #ifdef DEBUG
     printf("\ntask_resume - AFTER - [%d]", task->id);
 #endif
