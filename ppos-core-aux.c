@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/time.h>
 #include "ppos.h"
 #include "ppos-core-globals.h"
 
@@ -6,12 +10,59 @@
 // Coloque aqui as suas modificações, p.ex. includes, defines variáveis, 
 // estruturas e funções
 
+#define MAX_QUANTUM 20
+// #define DEBUG
+
+// estrutura que define um tratador de sinal (deve ser global ou static)
+struct sigaction action ;
+
+// estrutura de inicialização to timer
+struct itimerval timer ;
+
+// tratador do sinal
+void tratador (int signum)
+{
+  systemTime++;
+
+  if (taskExec != taskMain && taskExec != taskDisp) {
+    taskExec->ticks--;
+    if (taskExec->ticks <= 0) {
+      task_yield();
+    }
+  }
+}
+
+void timer_handler () {
+  // registra a ação para o sinal de timer SIGALRM
+  action.sa_handler = tratador ;
+  sigemptyset (&action.sa_mask) ;
+  action.sa_flags = 0 ;
+  if (sigaction (SIGALRM, &action, 0) < 0)
+  {
+    perror ("Erro em sigaction: ") ;
+    exit (1) ;
+  }
+
+  // ajusta valores do temporizador
+  timer.it_value.tv_usec = 1000 ;      // primeiro disparo, em micro-segundos
+  timer.it_value.tv_sec  = 0 ;         // primeiro disparo, em segundos
+  timer.it_interval.tv_usec = 1000 ;   // disparos subsequentes, em micro-segundos
+  timer.it_interval.tv_sec  = 0 ;      // disparos subsequentes, em segundos
+
+  // arma o temporizador ITIMER_REAL (vide man setitimer)
+  if (setitimer (ITIMER_REAL, &timer, 0) < 0)
+  {
+    perror ("Erro em setitimer: ") ;
+    exit (1) ;
+  }
+}
 
 // ****************************************************************************
 
 
 
 void before_ppos_init () {
+    timer_handler();
     // put your customization here
 #ifdef DEBUG
     printf("\ninit - BEFORE");
@@ -19,7 +70,7 @@ void before_ppos_init () {
 }
 
 void after_ppos_init () {
-    // put your customization here
+    // timer_handler();
 #ifdef DEBUG
     printf("\ninit - AFTER");
 #endif
@@ -33,7 +84,7 @@ void before_task_create (task_t *task ) {
 }
 
 void after_task_create (task_t *task ) {
-    // put your customization here
+    task->ticks = MAX_QUANTUM;
 #ifdef DEBUG
     printf("\ntask_create - AFTER - [%d]", task->id);
 #endif
@@ -396,12 +447,12 @@ int after_mqueue_msgs (mqueue_t *queue) {
     return 0;
 }
 
-task_t * scheduler() {
-    // FCFS scheduler
-    if ( readyQueue != NULL ) {
-        return readyQueue;
-    }
-    return NULL;
-}
+// task_t * scheduler() {
+//     // FCFS scheduler
+//     if ( readyQueue != NULL ) {
+//         return readyQueue;
+//     }
+//     return NULL;
+// }
 
 

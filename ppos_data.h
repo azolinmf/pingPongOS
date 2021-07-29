@@ -28,6 +28,7 @@ typedef struct task_t
 
    int prio; // prioridade dinâmica
    int staticPrio; // prioridade estática
+   int ticks; //ticks da tarefa para validar preempção
    
 } task_t ;
 

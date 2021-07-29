@@ -1,27 +1,24 @@
 #include "ppos.h"
-#include<stdio.h>
+#include <stdio.h>
+#include "ppos-core-globals.h"
 
-int UPPER_BOUND = 20;
-int LOWER_BOUND = -20;
-
-task_t *currentTask, *readyTasks;
+#define UPPER_BOUND 20
+#define LOWER_BOUND -20
 
 task_t * scheduler() {
-    task_t *tempTask = readyTasks;
-    task_t *nextTask = readyTasks;
+    task_t *tempTask = readyQueue;
+    task_t *nextTask = readyQueue;
 
     // enquanto a lista não chega no fim e nem aponta para o 
     // proximo elemento (lista circular)
-    while(tempTask != NULL && tempTask->next != readyTasks) {
+    while(tempTask->next != readyQueue) {
         tempTask = tempTask->next;
 
-        if (tempTask->prio > -20) {
-            tempTask->prio--;
-        }
-
-        // pega tarefa com maior prioridade
-        if (nextTask->prio < tempTask->prio) {
+        if (nextTask->prio > tempTask->prio) {
+            nextTask->prio--;
             nextTask = tempTask;
+        } else if (tempTask->prio > LOWER_BOUND) {
+            tempTask->prio--;
         }
     }
 
@@ -39,14 +36,15 @@ void task_setprio (task_t *task, int prio) {
     }
 
     if (task == NULL) {
-        currentTask->staticPrio = prioridade;
+        taskExec->staticPrio = prioridade;
     }
     task->staticPrio = prioridade;
+    task->prio = prioridade;
 }
 
 int task_getprio (task_t *task) {
     if (task == NULL) {
-        return currentTask->staticPrio;
+        return taskExec->staticPrio;
     }
     return task->staticPrio;
 }
