@@ -15,6 +15,7 @@
 typedef struct
 {
   // completar com os campos necessarios
+  struct task_t* suspendedQueue;
 } disk_t ;
 
 // inicializacao do gerente de disco
