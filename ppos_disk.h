@@ -11,12 +11,28 @@
 // a um dispositivo de entrada/saida orientado a blocos,
 // tipicamente um disco rigido.
 
+typedef struct diskOperation
+{
+  task_t* task;
+  int cmd;
+  int block;
+  void *buffer;
+
+  struct diskOperation *next, *prev;
+
+} diskOperation;
+
+
 // estrutura que representa um disco no sistema operacional
 typedef struct
 {
   // completar com os campos necessarios
-  struct task_t* suspendedQueue;
+  struct diskOperation* suspendedQueue;
+  struct task_t* executedTask;
 } disk_t ;
+
+task_t* taskManager;
+semaphore_t semaphoreDisk;
 
 // inicializacao do gerente de disco
 // retorna -1 em erro ou 0 em sucesso
