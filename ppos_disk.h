@@ -4,6 +4,8 @@
 
 // interface do gerente de disco rígido (block device driver)
 
+#include "ppos_data.h"
+
 #ifndef __DISK_MGR__
 #define __DISK_MGR__
 
@@ -13,12 +15,12 @@
 
 typedef struct diskOperation
 {
+  struct diskOperation *prev;
+  struct diskOperation *next;
   task_t* task;
   int cmd;
   int block;
   void *buffer;
-
-  struct diskOperation *next, *prev;
 
 } diskOperation;
 
@@ -27,12 +29,14 @@ typedef struct diskOperation
 typedef struct
 {
   // completar com os campos necessarios
-  struct diskOperation* suspendedQueue;
+  
   struct task_t* executedTask;
+  int status;
+  semaphore_t semaphoreDisk;
 } disk_t ;
 
-task_t* taskManager;
-semaphore_t semaphoreDisk;
+
+task_t taskManager;
 
 // inicializacao do gerente de disco
 // retorna -1 em erro ou 0 em sucesso
