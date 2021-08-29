@@ -3,6 +3,7 @@
         "ppos-core-globals.h": "c",
         "ppos.h": "c",
         "unistd.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "ppos_disk.h": "c"
     }
 }

@@ -14,11 +14,14 @@
 				// "${workspaceFolder}/queue.c",
 				// "${workspaceFolder}/pingpong-tasks3.c",
 				// "${workspaceFolder}/ppos.c",
-				"${workspaceFolder}/pingpong-contab-prio.c",
+				"${workspaceFolder}/ppos_disk.c",
+				"${workspaceFolder}/disk.c",
+				"${workspaceFolder}/pingpong-disco1.c",
 				"${workspaceFolder}/ppos-core-aux.c",
 				"${workspaceFolder}/libppos_static.a",
 				"-o",
-				"${workspaceFolder}/pingpong.exe"
+				"${workspaceFolder}/pingpong.exe",
+				"-lrt"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
