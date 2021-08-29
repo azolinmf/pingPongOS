@@ -11,9 +11,14 @@
 #define SSTF 0
 #define CSCAN 0
 
+// fila de operacoes a serem realizadas pelo disco
 struct diskOperation* operationsQueue;
+// fila das tasks suspensas
 task_t* suspendedQueue;
+// instancia do gerenciador do disco
 disk_t disk;
+
+// controladoras do sinal do disco
 struct sigaction action;
 int sair = 0;
 
@@ -21,7 +26,6 @@ void tratadorDisco() {
     sair = 1;
     int endTime = systime();
     disk.execTime += (endTime - disk.startAt);
-    // task_switch(&taskManager);
 }
 
 diskOperation* fcfs() {
@@ -69,8 +73,11 @@ diskOperation* cscan() {
 }
 
 void DiskDriverBody(void *arg) {
+    // variaveis para identificar se o gerenciador de disco
+    // esta sem receber operacoes novas (terminou a execucao)
+    int init = systime();
+    int time = systime();
     while (1) {
-
         // se foi acordado devido a um sinal do disco
         if (sair) {
 
@@ -84,10 +91,13 @@ void DiskDriverBody(void *arg) {
             // libera o semáforo de acesso ao disco
             sem_up(&disk.semaphoreDisk);
             
+            // resume a execução de uma tarefa suspensa
             task_resume(disk.executedTask);
+
+            time = 0; // inicializa timer
         }
 
-        // se o disco estiver livre e houver pedidos de E/S na fila
+        // se o disco estiver livre e houver pedidos de leitura e escrita na fila
         if (disk_cmd(DISK_CMD_STATUS, 0, 0) == 1 && (operationsQueue != NULL)) {
             // escolhe na fila o pedido a ser atendido
             diskOperation *executedOp;
@@ -99,16 +109,25 @@ void DiskDriverBody(void *arg) {
                 executedOp = cscan();
             }
 
+            // atualiza posicao atual no disco
             disk.position = executedOp->block;
+            // atualiza task em execucao
             disk.executedTask = executedOp->task;
+            // inicializa tempo de execucao
             disk.startAt = systime();
-            // solicita ao disco a operação de E/S
+            // solicita ao disco a operação de leitura/escrita
             disk_cmd(executedOp->cmd, executedOp->block, executedOp->buffer);
+
             free(executedOp);
+
+            time = 0; // inicializa timer
         }
 
-        // suspende a tarefa corrente (retorna ao dispatcher)
-        // task_yield();
+        // se ficou 5s sem receber operacoes
+        if (time - init > 5000) {
+            printf("Tempo de execucao: %d, numero de blocos percorridos: %d\r\n", disk.execTime, disk.countBlocks);
+            task_exit(0);
+        }
     }
 }
 
@@ -129,6 +148,7 @@ int disk_mgr_init(int *numBlocks, int *blockSize) {
         return -1;
     }
     *numBlocks = result;
+    // salva o numero de blocos do disco
     disk.numBlocks = result;
 
     result = disk_cmd(DISK_CMD_BLOCKSIZE, 0, NULL);
@@ -136,10 +156,14 @@ int disk_mgr_init(int *numBlocks, int *blockSize) {
         return -1;
     }
     *blockSize = result;
+
+    // inicializa a lista de operacoes de leitura e escrita
     operationsQueue = NULL;
 
+    // cria o semaforo do disco
     sem_create(&disk.semaphoreDisk, 1);
 
+    // inicializa o tratador de sinal
     action.sa_handler = tratadorDisco;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
@@ -148,10 +172,15 @@ int disk_mgr_init(int *numBlocks, int *blockSize) {
         return -1;
     }
 
-    disk.position = 95;
+    // inicializa posicao do disco
+    disk.position = 0;
+
+    // contadores para o tempo de execucao e numero de 
+    // blocos percorridos
     disk.execTime = 0;
     disk.countBlocks = 0;
 
+    // cria a task gerente do disco
     task_create(&taskManager, DiskDriverBody, 0);
 
     return 0;
@@ -159,7 +188,6 @@ int disk_mgr_init(int *numBlocks, int *blockSize) {
 
 // leitura de um bloco, do disco para o buffer
 int disk_block_read(int block, void *buffer) {
-    // obtém o semáforo de acesso ao disco
 
     // inclui o pedido na fila_disco
     diskOperation* operation = (diskOperation*) malloc(sizeof(diskOperation));
@@ -169,11 +197,14 @@ int disk_block_read(int block, void *buffer) {
     operation->task = taskExec;
 	operation->prev = NULL;
 	operation->next = NULL;
+
+    // suspende task e adiciona na fila das operacoes
     sem_down(&disk.semaphoreDisk);
     queue_append((queue_t **)&(operationsQueue), (queue_t *)operation);
     queue_remove((queue_t **)&readyQueue, (queue_t *)&taskExec);
     sem_up(&disk.semaphoreDisk);
 
+    // verifica se gerente do disco esta suspensa
     task_t* sleepTask = suspendedQueue;
     int foundTask = 0;
     for (int i = 0; i < queue_size((queue_t*)suspendedQueue); i++) {
@@ -190,20 +221,15 @@ int disk_block_read(int block, void *buffer) {
         queue_append((queue_t **)&readyQueue, (queue_t *)&taskManager);
     }
 
-    // libera semáforo de acesso ao disco
-
     // suspende a tarefa corrente (retorna ao dispatcher)
     task_suspend(taskExec, &suspendedQueue);
     task_yield();
-    // free(operation);
 
     return 0;
 }
 
 // escrita de um bloco, do buffer para o disco
 int disk_block_write(int block, void *buffer) {
-    // obtém o semáforo de acesso ao disco
-    sem_down(&disk.semaphoreDisk);
 
     // inclui o pedido na fila_disco
     diskOperation* operation = (diskOperation*) malloc(sizeof(diskOperation));
@@ -213,9 +239,14 @@ int disk_block_write(int block, void *buffer) {
     operation->task = taskExec;
 	operation->prev = NULL;
 	operation->next = NULL;
+
+    // suspende task e adiciona na fila das operacoes
+    sem_down(&disk.semaphoreDisk);
     queue_append((queue_t **)&(operationsQueue), (queue_t *)operation);
     queue_remove((queue_t **)&readyQueue, (queue_t *)&taskExec);
+    sem_up(&disk.semaphoreDisk);
 
+    // verifica se gerente do disco esta suspensa
     task_t* sleepTask = suspendedQueue;
     int foundTask = 0;
     for (int i = 0; i < queue_size((queue_t*)suspendedQueue); i++) {
@@ -231,9 +262,6 @@ int disk_block_write(int block, void *buffer) {
         queue_remove((queue_t **)&suspendedQueue, (queue_t *)&taskManager);
         queue_append((queue_t **)&readyQueue, (queue_t *)&taskManager);
     }
-
-    // libera semáforo de acesso ao disco
-    sem_up(&disk.semaphoreDisk);
 
     // suspende a tarefa corrente (retorna ao dispatcher)
     task_suspend(taskExec, &suspendedQueue);

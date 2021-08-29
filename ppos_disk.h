@@ -13,29 +13,30 @@
 // a um dispositivo de entrada/saida orientado a blocos,
 // tipicamente um disco rigido.
 
+// fila de operacoes do disco
 typedef struct diskOperation
 {
   struct diskOperation *prev;
   struct diskOperation *next;
-  task_t* task;
-  int cmd;
-  int block;
-  void *buffer;
-
+  task_t* task; // task da operacao
+  int cmd; // comando da operacao (escrita/leitura)
+  int block; // bloco do disco
+  void *buffer; // buffer a ser preenchido ou a ser inserido no disco
 } diskOperation;
 
 
 // estrutura que representa um disco no sistema operacional
+// gerenciador do disco virtual
 typedef struct
 {
   // completar com os campos necessarios
   
-  struct task_t* executedTask;
+  struct task_t* executedTask; // task qem execucao
   int status;
-  semaphore_t semaphoreDisk;
-  int position;
-  int numBlocks;
-  int countBlocks;
+  semaphore_t semaphoreDisk; // semaforo do disco
+  int position; // posicao atual da cabeca do disco
+  int numBlocks; // numero de blocos do disco
+  int countBlocks; // numero de blocos percorridos pela cabeca do disco
 
   int execTime; // soma total do tempo de execucao
   int startAt; // tempo inicial de uma execucao
@@ -43,7 +44,7 @@ typedef struct
 } disk_t ;
 
 
-task_t taskManager;
+task_t taskManager; // gerente do disco
 
 // inicializacao do gerente de disco
 // retorna -1 em erro ou 0 em sucesso
