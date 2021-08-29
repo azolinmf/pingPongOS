@@ -33,6 +33,13 @@ typedef struct
   struct task_t* executedTask;
   int status;
   semaphore_t semaphoreDisk;
+  int position;
+  int numBlocks;
+  int countBlocks;
+
+  int execTime; // soma total do tempo de execucao
+  int startAt; // tempo inicial de uma execucao
+
 } disk_t ;
 
 
