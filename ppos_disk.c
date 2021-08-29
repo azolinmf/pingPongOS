@@ -24,7 +24,7 @@ int sair = 0;
 
 void tratadorDisco() {
     sair = 1;
-    int endTime = systime();
+    int endTime = systemTime;
     disk.execTime += (endTime - disk.startAt);
 }
 
@@ -75,8 +75,7 @@ diskOperation* cscan() {
 void DiskDriverBody(void *arg) {
     // variaveis para identificar se o gerenciador de disco
     // esta sem receber operacoes novas (terminou a execucao)
-    int init = systime();
-    int time = systime();
+    int init = systemTime;
     while (1) {
         // se foi acordado devido a um sinal do disco
         if (sair) {
@@ -94,7 +93,7 @@ void DiskDriverBody(void *arg) {
             // resume a execução de uma tarefa suspensa
             task_resume(disk.executedTask);
 
-            time = 0; // inicializa timer
+            init = systemTime; // inicializa timer
         }
 
         // se o disco estiver livre e houver pedidos de leitura e escrita na fila
@@ -114,17 +113,17 @@ void DiskDriverBody(void *arg) {
             // atualiza task em execucao
             disk.executedTask = executedOp->task;
             // inicializa tempo de execucao
-            disk.startAt = systime();
+            disk.startAt = systemTime;
             // solicita ao disco a operação de leitura/escrita
             disk_cmd(executedOp->cmd, executedOp->block, executedOp->buffer);
 
             free(executedOp);
 
-            time = 0; // inicializa timer
+            init = systemTime; // inicializa timer
         }
 
         // se ficou 5s sem receber operacoes
-        if (time - init > 5000) {
+        if (systemTime - init > 5000) {
             printf("Tempo de execucao: %d, numero de blocos percorridos: %d\r\n", disk.execTime, disk.countBlocks);
             task_exit(0);
         }
